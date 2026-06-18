@@ -3,7 +3,9 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = Number(process.env.PORT || 3000);
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+// Aceita tanto GEMINI_API_KEY quanto, por compatibilidade com o README,
+// ANTHROPIC_API_KEY (quando o projeto estiver configurado para Claude).
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY || "";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -33,8 +35,9 @@ http.createServer(async (req, res) => {
     req.on("end", async () => {
       try {
         if (!GEMINI_API_KEY) {
+          console.error('API key ausente: defina GEMINI_API_KEY ou ANTHROPIC_API_KEY.');
           res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Chave da API não configurada no servidor." }));
+          res.end(JSON.stringify({ error: "Chave da API não configurada no servidor. Defina a variável de ambiente GEMINI_API_KEY (ou ANTHROPIC_API_KEY)." }));
           return;
         }
 
