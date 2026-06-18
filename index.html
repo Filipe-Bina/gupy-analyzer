@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analisador de Perfil Gupy — IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f0fdf4;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --primary: #16a34a;
+      --primary-dark: #15803d;
+      --primary-light: #dcfce7;
+      --primary-mid: #86efac;
+      --accent: #4f46e5;
+      --accent-light: #ede9fe;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #052e16;
+      padding: 0;
+      border-bottom: 1px solid #14532d;
+    }
+
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      background: var(--primary);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: #4ade80;
+      font-weight: 500;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #052e16 0%, #14532d 100%);
+      padding: 56px 24px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(74,222,128,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,222,128,0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    .hero-inner { position: relative; max-width: 640px; margin: 0 auto; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(74,222,128,0.12);
+      border: 1px solid rgba(74,222,128,0.25);
+      color: #4ade80;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: #4ade80;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: #86efac;
+      line-height: 1.7;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── TABS ── */
+    .input-tabs {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 20px;
+    }
+
+    .input-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .input-tab.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── UPLOAD ── */
+    .upload-zone {
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface-2);
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.drag {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 36px; margin-bottom: 12px; }
+    .upload-label { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .upload-hint { font-size: 12px; color: var(--muted); }
+
+    .upload-preview {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-mid);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-top: 12px;
+    }
+
+    .upload-preview.show { display: flex; }
+    .upload-preview-name { font-size: 13px; font-weight: 600; color: var(--primary-dark); flex: 1; }
+    .upload-remove { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px; font-weight: 700; padding: 0 4px; }
+
+    /* ── TEXTAREA ── */
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      resize: vertical;
+      outline: none;
+      color: var(--text);
+      background: var(--surface-2);
+      line-height: 1.6;
+    }
+
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22,163,74,0.1); background: var(--surface); }
+
+    .textarea-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* ── VAGA (OPCIONAL) ── */
+    .vaga-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      background: none;
+      border: none;
+      padding: 0;
+      margin-bottom: 12px;
+    }
+
+    .vaga-area { display: none; }
+    .vaga-area.show { display: block; }
+
+    /* ── BOTÃO ANALISAR ── */
+    .btn-analyze {
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-analyze:hover:not(:disabled) { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── LOADING ── */
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .loading.show { display: flex; }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--primary-light);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .loading-steps {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--primary);
+    }
+
+    /* ── RESULTADO ── */
+    .result { display: none; }
+    .result.show { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .score-ring {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .score-circle {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: conic-gradient(var(--primary) var(--pct, 0%), var(--primary-light) 0%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .score-circle::after {
+      content: '';
+      position: absolute;
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: var(--surface);
+    }
+
+    .score-val {
+      position: relative;
+      z-index: 1;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .score-info h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .score-info p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .btn-new {
+      padding: 10px 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .btn-new:hover { background: var(--primary-light); border-color: var(--primary-mid); color: var(--primary); }
+
+    /* ── SEÇÕES DE RESULTADO ── */
+    .result-sections { display: flex; flex-direction: column; gap: 16px; }
+
+    .result-section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .result-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      background: var(--surface);
+      border: none;
+      width: 100%;
+      text-align: left;
+      gap: 12px;
+    }
+
+    .result-section-header:hover { background: var(--surface-2); }
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .section-icon { font-size: 20px; }
+
+    .section-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .section-score-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .score-high { background: #dcfce7; color: #14532d; }
+    .score-mid  { background: #fef3c7; color: #78350f; }
+    .score-low  { background: #fee2e2; color: #7f1d1d; }
+
+    .section-chevron {
+      font-size: 18px;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .result-section.open .section-chevron { transform: rotate(180deg); }
+
+    .result-section-body {
+      display: none;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .result-section.open .result-section-body { display: block; }
+
+    /* ── DIAGNÓSTICO / SUGESTÕES ── */
+    .diag-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin: 16px 0 8px;
+    }
+
+    .diag-box {
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #334155;
+      border-left: 3px solid var(--line);
+    }
+
+    .diag-box.warn { border-left-color: #f59e0b; background: #fffbeb; }
+    .diag-box.ok   { border-left-color: var(--primary); background: var(--primary-light); }
+
+    .suggestion-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .suggestion-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--primary-light);
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+
+    .sug-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    .sug-text { font-size: 13px; line-height: 1.6; color: #14532d; }
+    .sug-text strong { font-weight: 700; display: block; margin-bottom: 2px; color: #052e16; }
+
+    /* ── PALAVRAS-CHAVE ── */
+    .keywords-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+    .keyword-tag {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid;
+    }
+
+    .kw-add { background: #dcfce7; color: #14532d; border-color: #86efac; }
+    .kw-ok  { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+
+    /* ── TEXTO REESCRITO ── */
+    .rewrite-box {
+      background: #0f172a;
+      color: #f1f5f9;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      font-family: 'JetBrains Mono', monospace;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+    /* ── ERRO ── */
+    .error-box {
+      display: none;
+      background: #fff0ee;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #991b1b;
+      margin-top: 12px;
+    }
+
+    .error-box.show { display: block; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 600px) {
+      .header-inner { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .result-header { flex-direction: column; align-items: flex-start; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-mark">GUPY.AI</span>
+      <div>
+        <div class="brand-name">Analisador de Perfil</div>
+        <div class="brand-sub">Powered by Inteligência Artificial</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">análise em tempo real</div>
+    <h1>Seu perfil no Gupy<br/><em>pronto para recrutadores</em></h1>
+    <p class="hero-desc">Cole o texto do seu perfil ou faça upload do PDF e receba uma análise detalhada com sugestões prontas para aplicar.</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- CARD DE INPUT -->
+  <div class="card">
+    <div class="card-title">📋 Seu perfil do Gupy</div>
+    <p class="card-sub">Escolha como quer enviar o conteúdo do seu perfil para análise.</p>
+
+    <div class="input-tabs">
+      <button class="input-tab active" onclick="switchTab('text')">✏️ Colar texto</button>
+      <button class="input-tab" onclick="switchTab('pdf')">📄 Upload PDF</button>
+    </div>
+
+    <!-- TAB TEXTO -->
+    <div class="tab-panel active" id="tab-text">
+      <textarea id="profile-text" rows="10" placeholder="Cole aqui o conteúdo do seu perfil Gupy — resumo, experiências, formação, habilidades...
+
+Exemplo:
+Sobre mim: Profissional com 5 anos de experiência em...
+Experiências: Empresa X (2020-2024) — Cargo...
+Formação: Análise e Desenvolvimento de Sistemas — Anhanguera
+Habilidades: JavaScript, Python, SQL..."></textarea>
+      <p class="textarea-hint">Quanto mais completo o texto, mais detalhada será a análise.</p>
+    </div>
+
+    <!-- TAB PDF -->
+    <div class="tab-panel" id="tab-pdf">
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(event)" />
+        <div class="upload-icon">📄</div>
+        <div class="upload-label">Arraste o PDF aqui ou clique para selecionar</div>
+        <div class="upload-hint">Exporte seu perfil do Gupy em PDF e faça o upload</div>
+      </div>
+      <div class="upload-preview" id="upload-preview">
+        <span>📄</span>
+        <span class="upload-preview-name" id="file-name"></span>
+        <button class="upload-remove" onclick="removeFile()">✕</button>
+      </div>
+    </div>
+
+    <!-- VAGA OPCIONAL -->
+    <div style="margin-top: 20px;">
+      <button class="vaga-toggle" onclick="toggleVaga()">
+        <span id="vaga-arrow">▶</span> Adicionar título da vaga (opcional — melhora a análise)
+      </button>
+      <div class="vaga-area" id="vaga-area">
+        <input type="text" id="vaga-input" placeholder="Ex: Desenvolvedor Full Stack Júnior, Analista de QA..."
+          style="width:100%;border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:14px;outline:none;font-family:inherit;" />
+        <p style="font-size:12px;color:var(--muted);margin-top:6px;">A IA vai verificar se seu perfil está alinhado com o tipo de vaga.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button class="btn-analyze" id="btn-analyze" onclick="analisar()">
+        🔍 Analisar meu perfil com IA
+      </button>
+      <div class="error-box" id="error-box"></div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="card loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Analisando seu perfil...</div>
+    <div class="loading-steps" id="loading-step">lendo conteúdo do perfil...</div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="result" id="result">
+
+    <div class="card" style="margin-bottom: 0;">
+      <div class="result-header">
+        <div class="score-ring">
+          <div class="score-circle" id="score-circle">
+            <span class="score-val" id="score-val">—</span>
+          </div>
+          <div class="score-info">
+            <h3 id="score-title">Análise concluída</h3>
+            <p id="score-desc">Veja as sugestões abaixo</p>
+          </div>
+        </div>
+        <button class="btn-new" onclick="resetar()">↺ Nova análise</button>
+      </div>
+
+      <div class="result-sections" id="result-sections"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  Analisador de Perfil Gupy · Powered by Claude AI · Nenhum dado é armazenado
+</footer>
+
+<script>
+  let activeTab = 'text';
+  let pdfBase64 = null;
+  let pdfFileName = null;
+  let vagaAberta = false;
+
+  // ── TABS ──
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.input-tab').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'text') || (i === 1 && tab === 'pdf'));
+    });
+    document.getElementById('tab-text').classList.toggle('active', tab === 'text');
+    document.getElementById('tab-pdf').classList.toggle('active', tab === 'pdf');
+  }
+
+  // ── VAGA ──
+  function toggleVaga() {
+    vagaAberta = !vagaAberta;
+    document.getElementById('vaga-area').classList.toggle('show', vagaAberta);
+    document.getElementById('vaga-arrow').textContent = vagaAberta ? '▼' : '▶';
+  }
+
+  // ── PDF ──
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    pdfFileName = file.name;
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('upload-preview').classList.add('show');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      pdfBase64 = e.target.result.split(',')[1];
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeFile() {
+    pdfBase64 = null;
+    pdfFileName = null;
+    document.getElementById('pdf-input').value = '';
+    document.getElementById('upload-preview').classList.remove('show');
+  }
+
+  // Drag and drop
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      document.getElementById('pdf-input').files = e.dataTransfer.files;
+      handleFileSelect({ target: { files: [file] } });
+    }
+  });
+
+  // ── LOADING STEPS ──
+  const loadingSteps = [
+    'lendo conteúdo do perfil...',
+    'identificando pontos de melhoria...',
+    'verificando palavras-chave ATS...',
+    'gerando sugestões personalizadas...',
+    'finalizando análise...'
+  ];
+
+  function animateLoading() {
+    let i = 0;
+    return setInterval(() => {
+      document.getElementById('loading-step').textContent = loadingSteps[i % loadingSteps.length];
+      i++;
+    }, 1800);
+  }
+
+  // ── ANALISAR ──
+  async function analisar() {
+    const errorBox = document.getElementById('error-box');
+    errorBox.classList.remove('show');
+
+    const vaga = document.getElementById('vaga-input').value.trim();
+
+    // Validação
+    if (activeTab === 'text') {
+      const txt = document.getElementById('profile-text').value.trim();
+      if (!txt || txt.length < 50) {
+        errorBox.textContent = 'Cole o conteúdo do seu perfil (mínimo 50 caracteres) antes de analisar.';
+        errorBox.classList.add('show');
+        return;
+      }
+    } else {
+      if (!pdfBase64) {
+        errorBox.textContent = 'Selecione um arquivo PDF antes de analisar.';
+        errorBox.classList.add('show');
+        return;
+      }
+    }
+
+    // UI: loading
+    document.getElementById('btn-analyze').disabled = true;
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('loading').classList.add('show');
+    const loadInterval = animateLoading();
+
+    try {
+      let messages;
+
+      if (activeTab === 'pdf') {
+        messages = [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 }
+            },
+            {
+              type: 'text',
+              text: buildPrompt('(conteúdo extraído do PDF acima)', vaga)
+            }
+          ]
+        }];
+      } else {
+        const txt = document.getElementById('profile-text').value.trim();
+        messages = [{
+          role: 'user',
+          content: buildPrompt(txt, vaga)
+        }];
+      }
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          system: `Você é um especialista em recrutamento e otimização de perfis para a plataforma Gupy e sistemas ATS (Applicant Tracking Systems) brasileiros. 
+Você analisa perfis de candidatos e fornece feedback detalhado, prático e direto para aumentar as chances de aprovação em triagens automáticas e humanas.
+SEMPRE responda SOMENTE com um objeto JSON válido, sem texto antes ou depois, sem markdown, sem blocos de código.`,
+          messages
+        })
+      });
+
+      const data = await response.json();
+      const rawText = data.content?.find(b => b.type === 'text')?.text || '';
+
+      let result;
+      try {
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        result = JSON.parse(clean);
+      } catch {
+        throw new Error('Resposta inesperada da IA. Tente novamente.');
+      }
+
+      clearInterval(loadInterval);
+      document.getElementById('loading').classList.remove('show');
+      renderResult(result);
+
+    } catch (err) {
+      clearInterval(loadInterval);
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('btn-analyze').disabled = false;
+      errorBox.textContent = 'Erro: ' + (err.message || 'Não foi possível conectar à IA. Tente novamente.');
+      errorBox.classList.add('show');
+    }
+  }
+
+  function buildPrompt(profileText, vaga) {
+    const vagaStr = vaga ? `\n\nVAGA DESEJADA: ${vaga}` : '';
+    return `Analise o seguinte perfil de candidato para a plataforma Gupy e sistemas ATS brasileiros.${vagaStr}
+
+PERFIL:
+${profileText}
+
+Retorne SOMENTE este JSON (sem markdown, sem texto extra):
+{
+  "score": <número de 0 a 100>,
+  "score_label": "<Fraco|Regular|Bom|Muito Bom|Excelente>",
+  "score_summary": "<frase curta de 1 linha sobre o perfil geral>",
+  "secoes": [
+    {
+      "id": "resumo",
+      "nome": "Resumo / Sobre mim",
+      "icon": "📝",
+      "score": <0-100>,
+      "diagnostico": "<análise do que está bom e o que falta, 2-3 frases>",
+      "sugestoes": [
+        { "titulo": "<título curto>", "detalhe": "<instrução prática e específica>" }
+      ],
+      "reescrita": "<versão melhorada do resumo pronta para copiar, se aplicável>"
+    },
+    {
+      "id": "experiencias",
+      "nome": "Experiências Profissionais",
+      "icon": "💼",
+      "score": <0-100>,
+      "diagnostico": "<análise>",
+      "sugestoes": [
+        { "titulo": "<título>", "detalhe": "<instrução prática>" }
+      ]
+    },
+    {
+      "id": "formacao",
+      "nome": "Formação Acadêmica",
+      "icon": "🎓",
+      "score": <0-100>,
+      "diagnostico": "<análise>",
+      "sugestoes": [
+        { "titulo": "<título>", "detalhe": "<instrução prática>" }
+      ]
+    },
+    {
+      "id": "habilidades",
+      "nome": "Habilidades e Competências",
+      "icon": "⚡",
+      "score": <0-100>,
+      "diagnostico": "<análise>",
+      "sugestoes": [
+        { "titulo": "<título>", "detalhe": "<instrução prática>" }
+      ]
+    },
+    {
+      "id": "ats",
+      "nome": "Palavras-chave para ATS / IA",
+      "icon": "🔑",
+      "score": <0-100>,
+      "diagnostico": "<análise de palavras-chave encontradas e ausentes>",
+      "keywords_presentes": ["<palavra>"],
+      "keywords_adicionar": ["<palavra>"],
+      "sugestoes": [
+        { "titulo": "<título>", "detalhe": "<instrução prática>" }
+      ]
+    }
+  ]
+}`;
+  }
+
+  // ── RENDER ──
+  function renderResult(data) {
+    // Score
+    const score = Math.min(100, Math.max(0, data.score || 0));
+    const pct = (score / 100 * 360).toFixed(1);
+    document.getElementById('score-circle').style.setProperty('--pct', `${score}%`);
+    document.getElementById('score-circle').style.background =
+      `conic-gradient(var(--primary) ${score}%, var(--primary-light) 0%)`;
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('score-title').textContent = `${data.score_label || ''} — ${score}/100`;
+    document.getElementById('score-desc').textContent = data.score_summary || '';
+
+    // Seções
+    const container = document.getElementById('result-sections');
+    container.innerHTML = '';
+
+    (data.secoes || []).forEach((sec, idx) => {
+      const s = sec.score || 0;
+      const scoreClass = s >= 75 ? 'score-high' : s >= 45 ? 'score-mid' : 'score-low';
+      const scoreText = s >= 75 ? 'Bom' : s >= 45 ? 'Melhorar' : 'Atenção';
+
+      const div = document.createElement('div');
+      div.className = 'result-section' + (idx === 0 ? ' open' : '');
+      div.innerHTML = `
+        <button class="result-section-header" onclick="toggleSection(this)">
+          <div class="section-title-row">
+            <span class="section-icon">${sec.icon}</span>
+            <span class="section-name">${sec.nome}</span>
+            <span class="section-score-badge ${scoreClass}">${scoreText} · ${s}/100</span>
+          </div>
+          <span class="section-chevron">⌄</span>
+        </button>
+        <div class="result-section-body">
+          <div class="diag-label">Diagnóstico</div>
+          <div class="diag-box ${s >= 75 ? 'ok' : s >= 45 ? 'warn' : ''}">${sec.diagnostico || ''}</div>
+
+          ${renderSugestoes(sec.sugestoes)}
+          ${renderKeywords(sec)}
+          ${renderReescrita(sec)}
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    document.getElementById('result').classList.add('show');
+    document.getElementById('btn-analyze').disabled = false;
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderSugestoes(sugestoes) {
+    if (!sugestoes || !sugestoes.length) return '';
+    const items = sugestoes.map(s => `
+      <div class="suggestion-item">
+        <span class="sug-icon">✅</span>
+        <div class="sug-text">
+          <strong>${s.titulo}</strong>
+          ${s.detalhe}
+        </div>
+      </div>
+    `).join('');
+    return `<div class="diag-label">O que melhorar</div><div class="suggestion-list">${items}</div>`;
+  }
+
+  function renderKeywords(sec) {
+    if (sec.id !== 'ats') return '';
+    let html = '';
+    if (sec.keywords_presentes?.length) {
+      const tags = sec.keywords_presentes.map(k => `<span class="keyword-tag kw-ok">✓ ${k}</span>`).join('');
+      html += `<div class="diag-label">Palavras-chave encontradas</div><div class="keywords-grid">${tags}</div>`;
+    }
+    if (sec.keywords_adicionar?.length) {
+      const tags = sec.keywords_adicionar.map(k => `<span class="keyword-tag kw-add">+ ${k}</span>`).join('');
+      html += `<div class="diag-label" style="margin-top:14px">Adicionar ao perfil</div><div class="keywords-grid">${tags}</div>`;
+    }
+    return html;
+  }
+
+  function renderReescrita(sec) {
+    if (!sec.reescrita) return '';
+    const id = 'rw-' + sec.id;
+    return `
+      <div class="diag-label" style="margin-top:16px">✨ Versão melhorada — pronta para copiar</div>
+      <div class="rewrite-box" id="${id}">
+        <button class="copy-btn" onclick="copiar('${id}', this)">Copiar</button>${sec.reescrita}
+      </div>
+    `;
+  }
+
+  function toggleSection(btn) {
+    btn.closest('.result-section').classList.toggle('open');
+  }
+
+  function copiar(id, btn) {
+    const box = document.getElementById(id);
+    const text = box.innerText.replace('Copiar', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+  }
+
+  function resetar() {
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('profile-text').value = '';
+    document.getElementById('vaga-input').value = '';
+    removeFile();
+    document.getElementById('btn-analyze').disabled = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
