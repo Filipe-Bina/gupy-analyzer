@@ -14,6 +14,15 @@ const MIME = {
   ".json": "application/json",
 };
 
+function limparJSON(texto) {
+  // Remove blocos de markdown ```json ... ``` ou ``` ... ```
+  return texto
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+}
+
 http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
 
@@ -31,7 +40,6 @@ http.createServer(async (req, res) => {
 
         const payload = JSON.parse(body);
 
-        // Monta o prompt completo para o Gemini
         const systemPrompt = payload.system || "";
         const userMessage = payload.messages?.[0];
 
@@ -49,7 +57,6 @@ http.createServer(async (req, res) => {
           }
         }
 
-        // Monta as parts do Gemini
         const parts = [];
 
         if (pdfBase64) {
@@ -61,13 +68,16 @@ http.createServer(async (req, res) => {
           });
         }
 
-        parts.push({ text: systemPrompt + "\n\n" + userText });
+        // Instrução reforçada para o Gemini retornar JSON puro
+        const promptFinal = systemPrompt + "\n\nIMPORTANTE: Retorne SOMENTE o objeto JSON, sem markdown, sem blocos de código, sem texto antes ou depois.\n\n" + userText;
+        parts.push({ text: promptFinal });
 
         const geminiPayload = {
           contents: [{ role: "user", parts }],
           generationConfig: {
-            temperature: 0.4,
+            temperature: 0.3,
             maxOutputTokens: 2048,
+            responseMimeType: "application/json"  // Força JSON puro no Gemini 1.5
           }
         };
 
@@ -92,8 +102,30 @@ http.createServer(async (req, res) => {
             try {
               const geminiResponse = JSON.parse(data);
 
-              // Converte resposta do Gemini para o formato que o frontend espera (Claude)
-              const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              // Log para debug nos logs do Render
+              console.log("Status Gemini:", apiRes.statusCode);
+
+              if (apiRes.statusCode !== 200) {
+                console.error("Erro Gemini:", data);
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Erro da API Gemini: " + (geminiResponse?.error?.message || data) }));
+                return;
+              }
+
+              let text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+              // Limpa markdown caso venha mesmo com responseMimeType
+              text = limparJSON(text);
+
+              // Valida que é JSON válido antes de enviar
+              try {
+                JSON.parse(text);
+              } catch {
+                console.error("Gemini não retornou JSON válido:", text.substring(0, 300));
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "A IA não retornou um formato válido. Tente novamente." }));
+                return;
+              }
 
               const claudeFormat = {
                 content: [{ type: "text", text }]
@@ -104,7 +136,9 @@ http.createServer(async (req, res) => {
                 "Access-Control-Allow-Origin": "*",
               });
               res.end(JSON.stringify(claudeFormat));
+
             } catch (parseErr) {
+              console.error("Erro parse:", parseErr.message);
               res.writeHead(500, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "Erro ao processar resposta da IA." }));
             }
@@ -112,6 +146,7 @@ http.createServer(async (req, res) => {
         });
 
         apiReq.on("error", (err) => {
+          console.error("Erro conexão:", err.message);
           res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Erro ao conectar com a IA: " + err.message }));
         });
@@ -120,6 +155,7 @@ http.createServer(async (req, res) => {
         apiReq.end();
 
       } catch (err) {
+        console.error("Erro geral:", err.message);
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Requisição inválida: " + err.message }));
       }
