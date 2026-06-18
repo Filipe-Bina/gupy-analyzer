@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = Number(process.env.PORT || 3000);
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -17,13 +17,13 @@ const MIME = {
 http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
 
-  // ── PROXY PARA A API DO CLAUDE ──
+  // ── PROXY PARA A API DO GEMINI ──
   if (req.method === "POST" && url === "/api/analyze") {
     let body = "";
     req.on("data", chunk => body += chunk);
     req.on("end", async () => {
       try {
-        if (!ANTHROPIC_API_KEY) {
+        if (!GEMINI_API_KEY) {
           res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Chave da API não configurada no servidor." }));
           return;
@@ -31,18 +31,56 @@ http.createServer(async (req, res) => {
 
         const payload = JSON.parse(body);
 
-        // Faz a chamada à API do Claude no servidor (chave nunca vai ao browser)
+        // Monta o prompt completo para o Gemini
+        const systemPrompt = payload.system || "";
+        const userMessage = payload.messages?.[0];
+
+        let userText = "";
+        let pdfBase64 = null;
+
+        if (typeof userMessage?.content === "string") {
+          userText = userMessage.content;
+        } else if (Array.isArray(userMessage?.content)) {
+          for (const part of userMessage.content) {
+            if (part.type === "text") userText = part.text;
+            if (part.type === "document" && part.source?.type === "base64") {
+              pdfBase64 = part.source.data;
+            }
+          }
+        }
+
+        // Monta as parts do Gemini
+        const parts = [];
+
+        if (pdfBase64) {
+          parts.push({
+            inline_data: {
+              mime_type: "application/pdf",
+              data: pdfBase64
+            }
+          });
+        }
+
+        parts.push({ text: systemPrompt + "\n\n" + userText });
+
+        const geminiPayload = {
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 2048,
+          }
+        };
+
         const https = require("https");
-        const postData = JSON.stringify(payload);
+        const postData = JSON.stringify(geminiPayload);
+        const geminiPath = `/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
         const options = {
-          hostname: "api.anthropic.com",
-          path: "/v1/messages",
+          hostname: "generativelanguage.googleapis.com",
+          path: geminiPath,
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
             "Content-Length": Buffer.byteLength(postData),
           },
         };
@@ -51,11 +89,25 @@ http.createServer(async (req, res) => {
           let data = "";
           apiRes.on("data", chunk => data += chunk);
           apiRes.on("end", () => {
-            res.writeHead(apiRes.statusCode, {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            });
-            res.end(data);
+            try {
+              const geminiResponse = JSON.parse(data);
+
+              // Converte resposta do Gemini para o formato que o frontend espera (Claude)
+              const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+              const claudeFormat = {
+                content: [{ type: "text", text }]
+              };
+
+              res.writeHead(200, {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              });
+              res.end(JSON.stringify(claudeFormat));
+            } catch (parseErr) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Erro ao processar resposta da IA." }));
+            }
           });
         });
 
@@ -77,7 +129,11 @@ http.createServer(async (req, res) => {
 
   // ── CORS preflight ──
   if (req.method === "OPTIONS") {
-    res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" });
+    res.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    });
     res.end();
     return;
   }
